@@ -42,6 +42,7 @@ public class Asset {
 	 */
 	public void copySourceFile(){
 		//Run the copy on the first directory of assets
+		LOGGER.info("Copy assets folder from {} to {}", new File[]{source, destination});
 		copy(source);
 	}
 	
