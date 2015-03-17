@@ -8,7 +8,7 @@
 		<version>7</version>
 	</parent>
 
-	<groupId>org.jbake</groupId>
+	<groupId>hh.jbake</groupId>
 	<artifactId>jbake-core</artifactId>
 	<version>2.3.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -18,39 +18,32 @@
 	<url>http://jbake.org</url>
 	<developers>
 		<developer>
-			<id>jonbullock</id>
-			<name>Jonathan Bullock</name>
-			<email>jonbullock@gmail.com</email>
-			<url>http://jonathanbullock.com</url>
+			<id>HuguesH</id>
+			<name>Hugues</name>
 			<timezone>0</timezone>
 		</developer>
 	</developers>
 
 	<scm>
-		<url>https://github.com/jbake-org/jbake/</url>
-		<connection>scm:git:git@github.com:jbake-org/jbake.git</connection>
-		<developerConnection>scm:git:https://github.com/jbake-org/jbake.git</developerConnection>
+		<url>https://github.com/HuguesH/jbake/</url>
 	</scm>
-	
-	<issueManagement>
-		<system>GitHub Issues</system>
-		<url>https://github.com/jbake-org/jbake/issues</url>
-	</issueManagement>
 
-	<mailingLists>
-		<mailingList>
-			<name>jbake-dev</name>
-			<subscribe>jbake-dev@googlegroups.com</subscribe>
-			<unsubscribe>jbake-dev+unsubscribe@googlegroups.com</unsubscribe>
-			<archive>http://groups.google.com/group/jbake-dev</archive>
-		</mailingList>
-		<mailingList>
-			<name>jbake-user</name>
-			<subscribe>jbake-user@googlegroups.com</subscribe>
-			<unsubscribe>jbake-user+unsubscribe@googlegroups.com</unsubscribe>
-			<archive>http://groups.google.com/group/jbake-user</archive>
-		</mailingList>
-	</mailingLists>
+    <distributionManagement>
+        <repository>
+            <name>pacifica-releases</name>
+            <id>pacifica_repo</id>
+            <url>${pacifica_repo}</url>
+        </repository>
+
+        <snapshotRepository>
+            <name>pacifica-snapshots</name>
+            <id>pacifica_repo</id>
+            <url>${pacifica_repo}</url>
+            <uniqueVersion>false</uniqueVersion>
+        </snapshotRepository>
+    </distributionManagement>
+
+
 
 	<licenses>
 		<license>
@@ -103,46 +96,6 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-scm-plugin</artifactId>
-				<version>1.1</version>
-				<executions>
-					<execution>
-						<id>checkout-example-project-freemarker</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>checkout</goal>
-						</goals>
-						<configuration>
-							<checkoutDirectory>${project.build.directory}/example-project-freemarker</checkoutDirectory>
-							<connectionUrl>scm:git:git://github.com/jbake-org/jbake-example-project-freemarker.git</connectionUrl>
-						</configuration>
-					</execution>
-					<execution>
-						<id>checkout-example-project-groovy</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>checkout</goal>
-						</goals>
-						<configuration>
-							<checkoutDirectory>${project.build.directory}/example-project-groovy</checkoutDirectory>
-							<connectionUrl>scm:git:git://github.com/jbake-org/jbake-example-project-groovy.git</connectionUrl>
-						</configuration>
-					</execution>
-					<execution>
-						<id>checkout-example-project-thymeleaf</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>checkout</goal>
-						</goals>
-						<configuration>
-							<checkoutDirectory>${project.build.directory}/example-project-thymeleaf</checkoutDirectory>
-							<connectionUrl>scm:git:git://github.com/jbake-org/jbake-example-project-thymeleaf.git</connectionUrl>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>2.4</version>
 				<configuration>
@@ -190,73 +143,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.4</version>
-				<executions>
-					<execution>
-						<id>zip-example-project-freemarker</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-						<configuration>
-							<finalName>example_project_freemarker</finalName>
-							<appendAssemblyId>false</appendAssemblyId>
-							<descriptors>
-								<descriptor>src/main/assembly/assembly-example-project-freemarker.xml</descriptor>
-							</descriptors>
-							<attach>false</attach>
-						</configuration>
-					</execution>
-					<execution>
-						<id>zip-example-project-groovy</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-						<configuration>
-							<finalName>example_project_groovy</finalName>
-							<appendAssemblyId>false</appendAssemblyId>
-							<descriptors>
-								<descriptor>src/main/assembly/assembly-example-project-groovy.xml</descriptor>
-							</descriptors>
-							<attach>false</attach>
-						</configuration>
-					</execution>
-					<execution>
-						<id>zip-example-project-thymeleaf</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-						<configuration>
-							<finalName>example_project_thymeleaf</finalName>
-							<appendAssemblyId>false</appendAssemblyId>
-							<descriptors>
-								<descriptor>src/main/assembly/assembly-example-project-thymeleaf.xml</descriptor>
-							</descriptors>
-							<attach>false</attach>
-						</configuration>
-					</execution>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>dist</outputDirectory>
-							<finalName>jbake-${project.version}</finalName>
-							<descriptors>
-								<descriptor>src/main/assembly/assembly.xml</descriptor>
-							</descriptors>
-							<attach>false</attach>
-						</configuration>
-					</execution>
-				</executions>
-        	</plugin>
+
         	<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
