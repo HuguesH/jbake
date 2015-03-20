@@ -1,6 +1,8 @@
 package org.jbake.app;
 
 import org.apache.commons.configuration.CompositeConfiguration;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.*;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.parser.Engines;
 
@@ -150,4 +152,35 @@ public class FileUtil {
 		}
 		return path.replace(File.separator, "/");
 	}
+
+
+    /**
+     * Call common io copy directory and create Filter for specified suffixes
+     * @param srcDir
+     * @param destDir
+     * @param suffixes
+     * @throws IOException
+     */
+    public static void copyDirectory(File srcDir, File destDir, String[] suffixes) throws IOException {
+        if(suffixes.length >0){
+            IOFileFilter contentBinExtensionFilter = new SuffixFileFilter(suffixes);
+            //TODO create a date filter for simplify livereload
+            IOFileFilter contentsFilesExtension = FileFilterUtils.and(FileFileFilter.FILE, contentBinExtensionFilter);
+            // Create a filter for either directories or suffixes files
+            FileFilter filter = FileFilterUtils.or(DirectoryFileFilter.DIRECTORY, contentsFilesExtension);
+            FileUtils.copyDirectory(srcDir, destDir, filter);
+        }
+    }
+
+    /**
+     * Just call common.io method, in the future prepare a date filter for otimise livereload
+     * @param srcDir
+     * @param destDir
+     * @throws IOException
+     */
+    public static void copyDirectory(File srcDir, File destDir) throws IOException {
+        //TODO create a date filter for simplify livereload
+        FileUtils.copyDirectory(srcDir, destDir);
+    }
+
 }

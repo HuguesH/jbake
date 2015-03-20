@@ -61,6 +61,11 @@ public class ConfigUtil {
 		 * Folder where content (that's to say files to be transformed) resides in
 		 */
 		static final String CONTENT_FOLDER = "content.folder";
+
+    /**
+     * Suffixes with ',' list delimiter to copy in destination folder.
+     */
+    static final String CONTENT_BIN_SUFFIXES = "content.bin.suffixes";
 		
 		/**
 		 * How date is formated

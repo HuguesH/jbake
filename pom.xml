@@ -28,21 +28,6 @@
 		<url>https://github.com/HuguesH/jbake/</url>
 	</scm>
 
-    <distributionManagement>
-        <repository>
-            <name>pacifica-releases</name>
-            <id>pacifica_repo</id>
-            <url>${pacifica_repo}</url>
-        </repository>
-
-        <snapshotRepository>
-            <name>pacifica-snapshots</name>
-            <id>pacifica_repo</id>
-            <url>${pacifica_repo}</url>
-            <uniqueVersion>false</uniqueVersion>
-        </snapshotRepository>
-    </distributionManagement>
-
 
 
 	<licenses>

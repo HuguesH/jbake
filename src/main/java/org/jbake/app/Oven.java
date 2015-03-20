@@ -1,7 +1,6 @@
 package org.jbake.app;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -16,8 +15,8 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.SuffixFileFilter;
+
+import org.apache.commons.lang.ArrayUtils;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.model.DocumentTypes;
 import org.slf4j.Logger;
@@ -203,15 +202,12 @@ public class Oven{
         DBUtil.update(db, "update " + docType + " set rendered=true where rendered=false and cached=true");
       }
       // copy contents binaries
-        String[] contentsBinSuffixe = new String[]{".png", ".svg", ".pdf"};
-      FileFilter contentBinFilter = new SuffixFileFilter(contentsBinSuffixe);
-      LOGGER.info("copyDirectory {} to {} | for suffixe {}",new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath()});
-      FileUtils.copyDirectory(contentsPath, destination, contentBinFilter);
+      LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
+          ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
+      FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
       // copy assets
-      String[] assetsSuffixe =  new String[]{".css", ".js", ".eot", ".svg", "ttf" ,"wof" , ".png" };
-      FileFilter assetsFilter = new SuffixFileFilter(assetsSuffixe);
-      LOGGER.info("copyDirectory {} to {} | for suffixe {}",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
-      FileUtils.copyDirectory(assetsPath, destination, assetsFilter );
+      LOGGER.info("copy Assets from {} to {} ",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
+      FileUtil.copyDirectory(assetsPath, destination);
 
       LOGGER.info("Baking finished!");
       long end = new Date().getTime();
@@ -226,7 +222,9 @@ public class Oven{
     }
   }
 
-  /**
+
+
+    /**
    * Iterates over the configuration, searching for keys like "template.index.file=..." in order to
    * register new document types.
    */
