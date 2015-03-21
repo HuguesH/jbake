@@ -162,7 +162,9 @@ public class FileUtil {
      * @throws IOException
      */
     public static void copyDirectory(File srcDir, File destDir, String[] suffixes) throws IOException {
-        if(suffixes.length >0){
+        // for default property "" no copy extension.
+        // It's important to not erase rendered files
+        if(suffixes.length >0 && suffixes[0].length() >0){
             IOFileFilter contentBinExtensionFilter = new SuffixFileFilter(suffixes);
             //TODO create a date filter for simplify livereload
             IOFileFilter contentsFilesExtension = FileFilterUtils.and(FileFileFilter.FILE, contentBinExtensionFilter);

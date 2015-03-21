@@ -16,13 +16,6 @@
 	<name>jbake</name>
 	<description>JBake is a Java based open source static site/blog generator for developers.</description>
 	<url>http://jbake.org</url>
-	<developers>
-		<developer>
-			<id>HuguesH</id>
-			<name>Hugues</name>
-			<timezone>0</timezone>
-		</developer>
-	</developers>
 
 	<scm>
 		<url>https://github.com/HuguesH/jbake/</url>
