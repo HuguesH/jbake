@@ -31,6 +31,7 @@ import java.util.Map;
 public class Parser {
     private final static Logger LOGGER = LoggerFactory.getLogger(Parser.class);
 
+    private static final String HEADER_SEP = "~~~~~~";
     private CompositeConfiguration config;
     private String contentPath;
 
@@ -121,41 +122,47 @@ public class Parser {
      * @return true if header exists, false if not
      */
     private boolean hasHeader(List<String> contents) {
-        boolean headerValid = false;
+
+        boolean headersValid = false;
         boolean headerSeparatorFound = false;
         boolean statusFound = false;
         boolean typeFound = false;
 
         List<String> header = new ArrayList<String>();
 
+        //Read lines of document to find the header end line
         for (String line : contents) {
-            header.add(line);
-            if (line.contains("=")) {
-                if (line.startsWith("type=")) {
-                    typeFound = true;
-                }
-                if (line.startsWith("status=")) {
-                    statusFound = true;
-                }
-            }
-            if (line.equals("~~~~~~")) {
+            if (line.equals(HEADER_SEP)) {
                 headerSeparatorFound = true;
-                header.remove(line);
                 break;
             }
+            header.add(line);
         }
 
+        //Analyse importants headers
         if (headerSeparatorFound) {
-            headerValid = true;
+            headersValid = true;
             for (String headerLine : header) {
                 if (!headerLine.contains("=")) {
-                    headerValid = false;
-                    break;
+                    headersValid = false;
+                    LOGGER.warn("Header line not valid ({}) for jbake engine", headerLine);
+                }else{
+                    if (headerLine.startsWith("type=")) {
+                        typeFound = true;
+                    }
+                    if (headerLine.startsWith("status=")) {
+                        statusFound = true;
+                    }
                 }
+
             }
+        }else{
+            LOGGER.warn("No Header Separator found, please separate headers and contents with {}", HEADER_SEP);
         }
 
-        if (!headerValid || !statusFound || !typeFound) {
+        // Why this contraint ??
+        if (!headersValid || !statusFound || !typeFound) {
+            LOGGER.warn("One of condition must be true for the document header: [headersValid : {}, statusFound : {}, typeFound : {} ]", HEADER_SEP);
             return false;
         }
         return true;
@@ -169,7 +176,7 @@ public class Parser {
      */
     private void processHeader(List<String> contents, final Map<String, Object> content) {
         for (String line : contents) {
-            if (line.equals("~~~~~~")) {
+            if (line.equals(HEADER_SEP)) {
                 break;
             } else {
                 String[] parts = line.split("=");
@@ -212,7 +219,7 @@ public class Parser {
             if (inBody) {
                 body.append(line).append("\n");
             }
-            if (line.equals("~~~~~~")) {
+            if (line.equals(HEADER_SEP)) {
                 inBody = true;
             }
         }
