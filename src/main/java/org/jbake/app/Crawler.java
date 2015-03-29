@@ -103,7 +103,7 @@ public class Crawler {
     }
     
     private String buildURI(final File sourceFile) {
-    	String uri = FileUtil.asPath(sourceFile.getPath()).replace(FileUtil.asPath( contentPath), "");
+    	String uri = FileUtil.asPath(sourceFile.getPath()).replace(FileUtil.asPath(contentPath), "");
     	// strip off leading / to enable generating non-root based sites
     	if (uri.startsWith("/")) {
     		uri = uri.substring(1, uri.length());
@@ -171,11 +171,13 @@ public class Crawler {
     }
 
     public Set<String> getTags() {
-        List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from post where status='published'"));
         Set<String> result = new HashSet<String>();
-        for (ODocument document : query) {
-            String[] tags = DBUtil.toStringArray(document.field("tags"));
-            Collections.addAll(result, tags);
+        for (String docType : DocumentTypes.getDocumentTypes()) {
+            List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from " + docType + " where status='published'"));
+            for (ODocument document : query) {
+                String[] tags = DBUtil.toStringArray(document.field("tags"));
+                Collections.addAll(result, tags);
+            }
         }
         return result;
     }

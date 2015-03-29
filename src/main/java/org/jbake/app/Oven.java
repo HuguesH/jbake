@@ -202,9 +202,11 @@ public class Oven{
         DBUtil.update(db, "update " + docType + " set rendered=true where rendered=false and cached=true");
       }
       // copy contents binaries
-      LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
-          ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
-      FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
+      if(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES)[0].length()>0) {
+        LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
+                ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
+        FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
+      }
       // copy assets
       LOGGER.info("copy Assets from {} to {} ",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
       FileUtil.copyDirectory(assetsPath, destination);
