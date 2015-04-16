@@ -115,11 +115,13 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                     	return DocumentList.wrap(allContent.iterator());
                     }
                     if ("alltags".equals(key)) {
-                        List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from post where status='published'"));
                         Set<String> result = new HashSet<String>();
-                        for (ODocument document : query) {
-                            String[] tags = DBUtil.toStringArray(document.field("tags"));
-                            Collections.addAll(result, tags);
+                        for (String docType : DocumentTypes.getDocumentTypes()) {
+                            List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from " + docType + " where status='published'"));
+                            for (ODocument document : query) {
+                                String[] tags = DBUtil.toStringArray(document.field("tags"));
+                                Collections.addAll(result, tags);
+                            }
                         }
                         return result;
                     }
@@ -133,6 +135,12 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                         String tag = model.get("tag").toString();
                         // fetch the tag posts from db
                         List<ODocument> query = DBUtil.query(db, "select * from post where status='published' where ? in tags order by date desc", tag);
+                        return DocumentList.wrap(query.iterator());
+                    }
+                    if ("tag_pages".equals(key)) {
+                        String tag = model.get("tag").toString();
+                        // fetch the tag posts from db
+                        List<ODocument> query = DBUtil.query(db, "select * from page where status='published' where ? in tags order by date desc", tag);
                         return DocumentList.wrap(query.iterator());
                     }
                     if ("published_date".equals(key)) {
