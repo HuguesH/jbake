@@ -26,7 +26,10 @@ public class MarkdownEngine extends MarkupEngine {
     public void processHeader(final ParserContext context) {
       Map<String, Object> contents = context.getContents();
       if(contents.get("title") == null){
-        LOGGER.warn("Atribut title: {} ", contents.get("title"));
+        String fileName =  context.getFile().getName();
+        String documentName = fileName.substring(0,fileName.lastIndexOf("."));
+        contents.put("title",documentName);
+
       }
     }
 
