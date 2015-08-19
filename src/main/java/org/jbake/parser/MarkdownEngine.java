@@ -2,6 +2,10 @@ package org.jbake.parser;
 
 import org.pegdown.Extensions;
 import org.pegdown.PegDownProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Renders documents in the Markdown format.
@@ -10,12 +14,28 @@ import org.pegdown.PegDownProcessor;
  */
 public class MarkdownEngine extends MarkupEngine {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(MarkdownEngine.class);
+
     public MarkdownEngine() {
         Class engineClass = PegDownProcessor.class;
         assert engineClass!=null;
     }
 
-    @Override
+
+  @Override
+    public void processHeader(final ParserContext context) {
+      Map<String, Object> contents = context.getContents();
+      if(contents.get("title") == null){
+        String fileName =  context.getFile().getName();
+        String documentName = fileName.substring(0,fileName.lastIndexOf("."));
+        contents.put("title",documentName);
+
+      }
+    }
+
+
+
+  @Override
     public void processBody(final ParserContext context) {
         String[] mdExts = context.getConfig().getStringArray("markdown.extensions");
 

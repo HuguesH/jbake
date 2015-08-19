@@ -156,13 +156,14 @@ public class Parser {
                 }
 
             }
-        }else{
-            LOGGER.warn("No Header Separator found, please separate headers and contents with {}", HEADER_SEP);
+            if (!statusFound || !typeFound){
+                LOGGER.warn(
+                    "One of condition must be true for the document header: [statusFound : {}, typeFound : {} ]",
+                    new String[]{String.valueOf(statusFound), String.valueOf(typeFound)});
+            }
         }
-
         // Why this contraint ??
         if (!headersValid || !statusFound || !typeFound) {
-            LOGGER.warn("One of condition must be true for the document header: [headersValid : {}, statusFound : {}, typeFound : {} ]", HEADER_SEP);
             return false;
         }
         return true;
