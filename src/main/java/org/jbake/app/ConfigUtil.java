@@ -136,47 +136,62 @@ public class ConfigUtil {
 		 * Flag indicating if sitemap file should be generated
 		 */
 		static final String RENDER_SITEMAP = "render.sitemap";
-		
+
+			/**
+			 * Flag indicating if searchTokens file should be generated
+			 */
+			static final String RENDER_SEARCHTOKENS = "render.searchtokens";
+
+			/**
+			 * Flag indicating if searchTokens file should be generated
+			 */
+			static final String CLASS_LUCENEANALYZER = "searchtokens.lucene.analyzer";
+
 		/**
 		 * Flag indicating if tag files should be generated
 		 */
 		static final String RENDER_TAGS = "render.tags";
-		
+
 		/**
 		 * Port used when running Jetty server
 		 */
 		static final String SERVER_PORT = "server.port";
-		
+
 		/**
 		 * Sitemap template file name. Used only when {@link #RENDER_SITEMAP} is set to true
 		 */
 		static final String SITEMAP_FILE = "sitemap.file";
-		
+
+			/**
+			 * SearchTokens template file name. Used only when {@link #RENDER_SITEMAP} is set to true
+			 */
+			static final String SEARCHTOKENS_FILE = "searchtokens.file";
+
 		/**
 		 * Tags output path, used only when {@link #RENDER_TAGS} is true
 		 */
 		static final String TAG_PATH = "tag.path";
-		
+
 		/**
 		 * Encoding to be used for template files
 		 */
 		static final String TEMPLATE_ENCODING = "template.encoding";
-		
+
 		/**
 		 * Folder where template files are looked for
 		 */
 		static final String TEMPLATE_FOLDER = "template.folder";
-		
+
 		/**
 		 * Locale used for Thymeleaf template rendering
 		 */
 		static final String THYMELEAF_LOCALE = "thymeleaf.locale";
-		
+
 		/**
 		 * Version of JBake
 		 */
 		static final String VERSION = "version";
-		
+
 	}
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(ConfigUtil.class);
@@ -184,7 +199,7 @@ public class ConfigUtil {
 	private final static String CONFIG_FILE = "jbake.properties";
 	private final static String DEFAULT_CONFIG_FILE = "default.properties";
 	private static boolean LEGACY_CONFIG_FILE_WARNING_SHOWN = false;
-	
+
     public static CompositeConfiguration load(File source) throws ConfigurationException {
         CompositeConfiguration config = new CompositeConfiguration();
         config.setListDelimiter(',');
