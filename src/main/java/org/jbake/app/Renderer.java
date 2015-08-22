@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -130,6 +129,35 @@ public class Renderer {
             sb.append("failed!");
             LOGGER.error(sb.toString(), e);
             throw new Exception("Failed to render index. Cause: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Render an XML sitemap file using the supplied content.
+     * @throws Exception
+     *
+     * @see <a href="https://support.google.com/webmasters/answer/156184?hl=en&ref_topic=8476">About Sitemaps</a>
+     * @see <a href="http://www.sitemaps.org/">Sitemap protocol</a>
+     */
+    public void renderSearchTokens(String sitemapFile) throws Exception {
+        File outputFile = new File(destination.getPath() + File.separator + sitemapFile);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Rendering searchIndex [").append(outputFile).append("]... ");
+
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("renderer", renderingEngine);
+        model.put("content", buildSimpleModel("searchtokens"));
+
+        try {
+            Writer out = createWriter(outputFile);
+            renderingEngine.renderDocument(model, findTemplateName("searchtokens"), out);
+            sb.append("done!");
+            out.close();
+            LOGGER.info(sb.toString());
+        } catch (Exception e) {
+            sb.append("failed!");
+            LOGGER.error(sb.toString(), e);
+            throw new Exception("Failed to render sitemap. Cause: " + e.getMessage());
         }
     }
 

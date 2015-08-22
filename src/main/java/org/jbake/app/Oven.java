@@ -179,6 +179,15 @@ public class Oven{
         }
       }
 
+      // write searchTokens file
+      if(config.getBoolean(Keys.RENDER_SEARCHTOKENS)){
+        try{
+          renderer.renderSearchTokens(config.getString(Keys.SEARCHTOKENS_FILE));
+        }catch(Exception e){
+          errors.add(e.getMessage());
+        }
+      }
+
       // write master archive file
       if(config.getBoolean(Keys.RENDER_ARCHIVE)){
         try{

@@ -162,6 +162,8 @@
 		</resources>
 	</build>
 	<dependencies>
+		<!-- Test indexations -->
+
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
@@ -252,6 +254,12 @@
             <version>${thymeleaf.version}</version>
             <optional>true</optional>
         </dependency>
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-analyzers-common</artifactId>
+			<version>LATEST</version>
+			<optional>true</optional>
+		</dependency>
 		<!-- sl4j Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
