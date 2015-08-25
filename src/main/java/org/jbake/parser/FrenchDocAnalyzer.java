@@ -7,9 +7,8 @@ import java.util.Arrays;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
+import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.fr.FrenchLightStemFilter;
-import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilter;
 import org.apache.lucene.analysis.snowball.SnowballFilter;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
@@ -58,25 +57,29 @@ public class FrenchDocAnalyzer extends StopwordAnalyzerBase{
     StandardFilter result = new StandardFilter((TokenStream) source);
     ElisionFilter result2 = new ElisionFilter(result, DEFAULT_ARTICLES);
     LowerCaseFilter result3 = new LowerCaseFilter(result2);
-    Object result4 = new StopFilter(result3, this.stopwords);
-    if(!this.excltable.isEmpty()){
-      result4 = new SetKeywordMarkerFilter((TokenStream) result4, this.excltable);
-    }
+    StopFilter result4 = new StopFilter(result3, this.stopwords);
 
-    FrenchLightStemFilter result1 = new FrenchLightStemFilter((TokenStream) result4);
-    return new TokenStreamComponents((Tokenizer) source, result1);
+    return new TokenStreamComponents((Tokenizer) source, result4);
   }
 
   private static class DefaultSetHolder{
 
-    static final CharArraySet DEFAULT_STOP_SET;
+    static CharArraySet DEFAULT_STOP_SET;
 
     private DefaultSetHolder() {}
 
     static{
       try{
-        DEFAULT_STOP_SET = WordlistLoader.getSnowballWordSet(IOUtils.getDecodingReader(SnowballFilter.class,
+
+            CharArraySet docSet = WordlistLoader.getSnowballWordSet(IOUtils.getDecodingReader(SnowballFilter.class,
             "french_stop.txt", StandardCharsets.UTF_8));
+
+        docSet.addAll(StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+        docSet.add("jbake-tags");
+        docSet.add("jbake-status");
+        docSet.add("jbake-summary");
+        docSet.add("jbake-type");
+        DEFAULT_STOP_SET = docSet;
       }catch(IOException var1){
         throw new RuntimeException("Unable to load default stopword set");
       }

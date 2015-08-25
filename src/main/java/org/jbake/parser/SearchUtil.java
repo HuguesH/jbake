@@ -27,6 +27,8 @@ public final class SearchUtil{
     return activate;
   }
 
+  private static Class analyzerClazz = StandardAnalyzer.class;
+
   private Analyzer analyzer;
 
   public SearchUtil(String luceneAnalyzerConfig) {
@@ -35,8 +37,9 @@ public final class SearchUtil{
     if(luceneClass != null){
       // ConfigurationAnalyzer
       try{
-        Class luceneAnlyzer = Class.forName(luceneAnalyzerConfig);
-        analyzer = (Analyzer) luceneAnlyzer.newInstance();
+        Class configAnalyzerClazz = Class.forName(luceneAnalyzerConfig);
+        analyzer = (Analyzer) configAnalyzerClazz.newInstance();
+        analyzerClazz = configAnalyzerClazz;
 
       }catch(Exception e){
         LOGGER.error("No good class lucene Analyzer for key " + ConfigUtil.Keys.CLASS_LUCENEANALYZER, e);
@@ -54,6 +57,7 @@ public final class SearchUtil{
 
   public List<String> tokenizeString(String string) {
     if(activate){
+
       List<String> result = new ArrayList<String>();
       try{
         TokenStream stream = analyzer.tokenStream(null, new StringReader(string));
@@ -61,9 +65,16 @@ public final class SearchUtil{
         while(stream.incrementToken()){
           result.add(stream.getAttribute(CharTermAttribute.class).toString());
         }
+        //New instance of the lucene Analyzer, for each bean the Strategy could be different.
+        analyzer = (Analyzer) analyzerClazz.newInstance();
+
       }catch(IOException e){
         // not thrown b/c we're using a string reader...
         throw new RuntimeException(e);
+      }catch(InstantiationException e){
+        e.printStackTrace();
+      }catch(IllegalAccessException e){
+        e.printStackTrace();
       }
       return result;
     }else{
