@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang.StringUtils;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.AttributesBuilder;
 import org.asciidoctor.Options;
@@ -44,6 +45,8 @@ public class AsciidoctorEngine extends MarkupEngine{
     Class engineClass = Asciidoctor.class;
     assert engineClass != null;
   }
+
+
 
   private Asciidoctor getEngine() {
     try{
