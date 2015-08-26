@@ -19,6 +19,7 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.lang.ArrayUtils;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.model.DocumentTypes;
+import org.jbake.parser.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +137,10 @@ public class Oven{
       crawler.crawl(contentsPath);
       LOGGER.info("Pages : {}", crawler.getPageCount());
       LOGGER.info("Posts : {}", crawler.getPostCount());
+
+      SearchUtil searchUtil = new SearchUtil(db,config);
+      searchUtil.tokenizerPublishDocument();
+
 
       Renderer renderer = new Renderer(db, destination, templatesPath, config);
 
