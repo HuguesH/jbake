@@ -48,7 +48,7 @@ public class FrenchDocAnalyzer extends StopwordAnalyzerBase{
 
   protected TokenStreamComponents createComponents(String fieldName) {
     Object source;
-    if(this.getVersion().onOrAfter(Version.LUCENE_5_2_1)){
+    if(this.getVersion().onOrAfter(Version.LUCENE_5_3_0)){
       source = new StandardTokenizer();
     }else{
       throw new RuntimeException("Bad lucene version please use version after " + Version.LUCENE_5_2_1);
@@ -75,10 +75,6 @@ public class FrenchDocAnalyzer extends StopwordAnalyzerBase{
             "french_stop.txt", StandardCharsets.UTF_8));
 
         docSet.addAll(StopAnalyzer.ENGLISH_STOP_WORDS_SET);
-        docSet.add("jbake-tags");
-        docSet.add("jbake-status");
-        docSet.add("jbake-summary");
-        docSet.add("jbake-type");
         DEFAULT_STOP_SET = docSet;
       }catch(IOException var1){
         throw new RuntimeException("Unable to load default stopword set");
