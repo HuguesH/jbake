@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 
+import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -11,6 +14,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.jbake.app.ConfigUtil;
+import org.jbake.app.DBUtil;
 import org.jbake.model.DocumentTypes;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -58,12 +62,22 @@ public final class SearchUtil {
                 analyzer = new StandardAnalyzer();
             }
             activate = true;
+            updateSchema(db);
             this.db = db;
         } else {
             LOGGER.debug("No lucene classloader dependency found ");
             activate = false;
         }
 
+    }
+
+    public static void updateSchema(final ODatabaseDocumentTx db) {
+        OSchema schema = db.getMetadata().getSchema();
+        if (schema.getClass("Dico")==null) {
+            // create the sha1 signatures class
+            OClass dico = schema.createClass("Dico");
+            dico.createProperty("word", OType.STRING).setNotNull(true);
+        }
     }
 
 
@@ -108,6 +122,7 @@ public final class SearchUtil {
             }
 
             for (ODocument document : publishedContent) {
+                //With HTML reader all Lightweight markup language
                 Document docHtml = Jsoup.parseBodyFragment((String) document.field("body"));
                 List<String> tokensbody = tokenizeString(docHtml.body().text());
                 List<String> tokenstitle = tokenizeString((String) document.field("title"));
@@ -125,6 +140,12 @@ public final class SearchUtil {
                 dico.addAll(tokenstitle);
 
             }
+
+            for(String word : dico){
+                ODocument doc = new ODocument("Dico");
+                doc.field("word", word );
+            }
+
 
             LOGGER.debug("Created dictionnary with words count : " + dico.size());
             LOGGER.debug("Created dictionnary  " + dico.toString());

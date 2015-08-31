@@ -139,7 +139,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         	List<ODocument> publishedContent = new ArrayList<ODocument>();
         	String[] documentTypes = DocumentTypes.getDocumentTypes();
         	for (String docType : documentTypes) {
-        		List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from "+docType+" where status='published' order by date desc"));
+        		List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from " + docType + " where status='published' order by date desc"));
         		publishedContent.addAll(query);
         	}
         	return DocumentList.wrap(publishedContent.iterator());
@@ -153,6 +153,11 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         		allContent.addAll(query);
         	}
         	return DocumentList.wrap(allContent.iterator());
+        }
+
+        private Object getAllDico() {
+            List<ODocument> query = DBUtil.query(db, "select word from Dico");
+            return DocumentList.wrap(query.iterator());
         }
     }
 }

@@ -137,6 +137,11 @@ public class FreemarkerTemplateEngine extends AbstractTemplateEngine {
             if ("published_date".equals(key)) {
                 return new SimpleDate(new Date(), TemplateDateModel.UNKNOWN);
             }
+            if("all_dico".equals(key)){
+                List<ODocument> query = DBUtil.query(db, "select word from Dico");
+                return new SimpleCollection(DocumentList.wrap(query.iterator()));
+            }
+
             return eagerModel.get(key);
         }
 

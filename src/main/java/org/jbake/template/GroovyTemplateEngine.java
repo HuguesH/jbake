@@ -146,6 +146,10 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                     if ("published_date".equals(key)) {
                         return new Date();
                     }
+                    if("all_dico".equals(key)){
+                        List<ODocument> query = DBUtil.query(db, "select word from Dico");
+                        return DocumentList.wrap(query.iterator());
+                    }
                 }
 
                 return super.get(property);
