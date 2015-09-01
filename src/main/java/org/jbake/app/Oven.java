@@ -138,6 +138,7 @@ public class Oven{
       LOGGER.info("Pages : {}", crawler.getPageCount());
       LOGGER.info("Posts : {}", crawler.getPostCount());
 
+      //Prepare search with index.
       SearchUtil searchUtil = new SearchUtil(db,config);
       searchUtil.tokenizerPublishDocument();
 

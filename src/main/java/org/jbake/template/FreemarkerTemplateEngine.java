@@ -17,16 +17,16 @@ import freemarker.template.TemplateHashModel;
 import freemarker.template.TemplateModel;
 import freemarker.template.TemplateModelException;
 
+import javafx.beans.property.SimpleStringProperty;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
+import org.json.simple.JSONValue;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -139,7 +139,7 @@ public class FreemarkerTemplateEngine extends AbstractTemplateEngine {
             }
             if("all_dico".equals(key)){
                 List<ODocument> query = DBUtil.query(db, "select word from Dico");
-                return new SimpleCollection(DocumentList.wrap(query.iterator()));
+                eagerModel.put("all_dico",JSONValue.toJSONString(DocumentList.wrap(query.iterator())));
             }
 
             return eagerModel.get(key);

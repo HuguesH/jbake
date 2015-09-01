@@ -131,7 +131,7 @@ public final class SearchUtil {
                 document.field("tokenstitle", tokenstitle);
                 document.save();
 
-                String[] tags = document.field("tags");
+                String[] tags = DBUtil.toStringArray(document.field("tags"));
                 if (tags != null) {
                     for (String tag : tags) {
                         dico.add(tag);
@@ -144,6 +144,7 @@ public final class SearchUtil {
             for(String word : dico){
                 ODocument doc = new ODocument("Dico");
                 doc.field("word", word );
+                doc.save();
             }
 
 

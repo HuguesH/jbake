@@ -12,12 +12,7 @@ import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import org.jbake.model.DocumentTypes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DBUtil {
     public static ODatabaseDocumentTx createDB(final String type, String name) {
@@ -71,6 +66,16 @@ public class DBUtil {
         }
         return result;
     }
+
+    public static List<String> wrapFields(Iterator<ODocument> docs, String fieldName){
+            List<String> list = new ArrayList<String>();
+            while (docs.hasNext()) {
+                ODocument next = docs.next();
+                list.add((String)next.field(fieldName));
+            }
+            return list;
+    }
+
 
     public static List<ODocument> query(ODatabaseDocumentTx db, String query, Object... args) {
         return db.command(new OSQLSynchQuery<ODocument>(query)).execute(args);

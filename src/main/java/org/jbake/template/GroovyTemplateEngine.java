@@ -17,18 +17,16 @@ import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
+import org.json.simple.JSONValue;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -148,7 +146,7 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                     }
                     if("all_dico".equals(key)){
                         List<ODocument> query = DBUtil.query(db, "select word from Dico");
-                        return DocumentList.wrap(query.iterator());
+                        return JSONValue.toJSONString(DBUtil.wrapFields(query.iterator(),"word"));
                     }
                 }
 
