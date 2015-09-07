@@ -8,7 +8,7 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.lang.ArrayUtils;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -45,6 +45,8 @@ public final class SearchUtil {
 
     private ODatabaseDocumentTx db;
 
+    private Map<String,  LinkedHashSet<String>> allWords = new HashMap<String, LinkedHashSet<String>>();
+
     public SearchUtil(ODatabaseDocumentTx db, CompositeConfiguration config) {
         // Contrôle de lexistence de lucene dans le classpath.
         Class luceneClass = Analyzer.class;
@@ -73,10 +75,11 @@ public final class SearchUtil {
 
     public static void updateSchema(final ODatabaseDocumentTx db) {
         OSchema schema = db.getMetadata().getSchema();
-        if (schema.getClass("Dico")==null) {
+        if (schema.getClass("words")==null) {
             // create the sha1 signatures class
-            OClass dico = schema.createClass("Dico");
+            OClass dico = schema.createClass("word");
             dico.createProperty("word", OType.STRING).setNotNull(true);
+            dico.createProperty("uris", OType.LINKSET).setNotNull(true);
         }
     }
 
@@ -109,11 +112,23 @@ public final class SearchUtil {
         }
     }
 
+    private void addWord(String word,String uri){
+        LinkedHashSet<String>  listUri;
+        if(! allWords.containsKey(word)){
+            listUri = new LinkedHashSet<String>();
+            allWords.put(word,listUri);
+        }else{
+            listUri = allWords.get(word);
+        }
+        listUri.add(uri);
+    }
+
 
     public void tokenizerPublishDocument() {
         if (activate) {
             List<ODocument> publishedContent = new ArrayList<ODocument>();
-            Set<String> dico = new HashSet<String>();
+
+
             String[] documentTypes = DocumentTypes.getDocumentTypes();
             for (String docType : documentTypes) {
                 List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from " + docType
@@ -122,34 +137,45 @@ public final class SearchUtil {
             }
 
             for (ODocument document : publishedContent) {
-                //With HTML reader all Lightweight markup language
-                Document docHtml = Jsoup.parseBodyFragment((String) document.field("body"));
-                List<String> tokensbody = tokenizeString(docHtml.body().text());
-                List<String> tokenstitle = tokenizeString((String) document.field("title"));
-
-                document.field("tokensbody", tokensbody);
-                document.field("tokenstitle", tokenstitle);
-                document.save();
-
+                String uri = document.field("uri");
+                //Work on tags words
                 String[] tags = DBUtil.toStringArray(document.field("tags"));
                 if (tags != null) {
                     for (String tag : tags) {
-                        dico.add(tag);
+                        addWord(tag,uri);
                     }
                 }
-                dico.addAll(tokenstitle);
+                //Work on title words
+                List<String> tokenstitle = tokenizeString((String) document.field("title"));
+                for(String newWord : tokenstitle){
+                    addWord(newWord,uri);
+                }
+
+                //With HTML reader all Lightweight markup language
+                Document docHtml = Jsoup.parseBodyFragment((String) document.field("body"));
+                List<String> tokensbody = tokenizeString(docHtml.body().text());
+                for(String newWord : tokensbody){
+                    addWord(newWord,uri);
+                }
+
 
             }
 
-            for(String word : dico){
-                ODocument doc = new ODocument("Dico");
-                doc.field("word", word );
-                doc.save();
+            for(String word : allWords.keySet()){
+                ODocument oWord = new ODocument("words");
+                oWord.field("word", word );
+                oWord.field("uris", allWords.get(word));
+                oWord.save();
             }
 
 
-            LOGGER.debug("Created dictionnary with words count : " + dico.size());
-            LOGGER.debug("Created dictionnary  " + dico.toString());
+            for (String docType : documentTypes) {
+                List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>(
+                    "select uri, body from " + docType + " where status='published' order by date desc"));
+                publishedContent.addAll(query);
+            }
+
+            LOGGER.debug("Created index of   " + allWords.size());
         }
 
     }
