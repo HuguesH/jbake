@@ -10,6 +10,7 @@ import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
+import org.json.simple.JSONValue;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.context.VariablesMap;
@@ -155,9 +156,9 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         	return DocumentList.wrap(allContent.iterator());
         }
 
-        private Object getAllDico() {
-            List<ODocument> query = DBUtil.query(db, "select word from Dico");
-            return DocumentList.wrap(query.iterator());
+        private Object getAllWords() {
+            List<ODocument> query = DBUtil.query(db, "select * from words");
+            return  JSONValue.toJSONString(DocumentList.wrap(query.iterator()));
         }
     }
 }

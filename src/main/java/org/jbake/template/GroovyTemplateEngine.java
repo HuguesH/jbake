@@ -145,8 +145,8 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                         return new Date();
                     }
                     if("all_words".equals(key)){
-                        List<ODocument> query = DBUtil.query(db, "select word from Dico");
-                        return JSONValue.toJSONString(DBUtil.wrapFields(query.iterator(),"word"));
+                        List<ODocument> query = DBUtil.query(db, "select * from words");
+                        return JSONValue.toJSONString(DocumentList.wrap(query.iterator()));
                     }
                 }
 
