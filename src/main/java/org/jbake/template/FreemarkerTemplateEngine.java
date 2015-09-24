@@ -23,6 +23,7 @@ import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
+import org.jbake.parser.SearchUtil;
 import org.json.simple.JSONValue;
 
 import java.io.File;
@@ -139,7 +140,7 @@ public class FreemarkerTemplateEngine extends AbstractTemplateEngine {
             }
             if("all_words".equals(key)){
                 List<ODocument> query = DBUtil.query(db, "select * from words");
-                eagerModel.put("all_words",JSONValue.toJSONString(DocumentList.wrap(query.iterator())));
+                eagerModel.put("all_words",SearchUtil.searchTokensToJSon(query));
             }
 
             return eagerModel.get(key);
