@@ -140,7 +140,7 @@ public class Oven{
 
       //Prepare search with index.
       SearchUtil searchUtil = new SearchUtil(db,config);
-      searchUtil.tokenizerPublishDocument();
+      searchUtil.tokenizerPublishDocuments();
 
 
       Renderer renderer = new Renderer(db, destination, templatesPath, config);

@@ -117,74 +117,86 @@ public final class SearchUtil {
 
 
     private void addWord(String word, int indexDocId) {
-        LinkedHashSet<Integer> listId;
-        if (!allWords.containsKey(word)) {
-            listId = new LinkedHashSet<Integer>();
-            allWords.put(word, listId);
-        } else {
-            listId = allWords.get(word);
+        if (word.length() > 2) {
+            LinkedHashSet<Integer> listId;
+            if (!allWords.containsKey(word)) {
+                listId = new LinkedHashSet<Integer>();
+                allWords.put(word, listId);
+            } else {
+                listId = allWords.get(word);
+            }
+            listId.add(indexDocId);
         }
-        listId.add(indexDocId);
     }
 
 
-    public void tokenizerPublishDocument() {
+    public void tokenizerPublishDocuments() {
         if (activate) {
             List<ODocument> publishedContent = new ArrayList<ODocument>();
-
-
             String[] documentTypes = DocumentTypes.getDocumentTypes();
             for (String docType : documentTypes) {
                 List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from " + docType
                         + " where status='published' order by date desc"));
                 publishedContent.addAll(query);
             }
-            int documentIndexId = 0;
-            for (ODocument document : publishedContent) {
-                tabUri.add((String) document.field("uri"));
-                //Work on tags words
-                String[] tags = DBUtil.toStringArray(document.field("tags"));
-                if (tags != null) {
-                    for (String tag : tags) {
-                        addWord(tag, documentIndexId);
-                    }
-                }
-                //Work on title words
-                List<String> tokenstitle = tokenizeString((String) document.field("title"));
-                for (String newWord : tokenstitle) {
-                    addWord(newWord, documentIndexId);
-                }
 
-                //With HTML reader all Lightweight markup language
-                Document docHtml = Jsoup.parseBodyFragment((String) document.field("body"));
-                List<String> tokensbody = tokenizeString(docHtml.body().text());
-                for (String newWord : tokensbody) {
-                    addWord(newWord, documentIndexId);
-                }
+            extractWordsFrom(publishedContent);
 
-                documentIndexId++;
+            dbSaveWords();
 
-
-            }
-
-            //SAuvegarde les mots
-
-            for (String word : allWords.keySet()) {
-                ODocument oWord = new ODocument("words");
-                oWord.field("word", word);
-                oWord.field("indexId", allWords.get(word));
-                oWord.save();
-            }
-
-            ODocument oIndexUris = new ODocument("words");
-            oIndexUris.field("word", "_SEARCH_INDEX_URI_");
-            oIndexUris.field("indexId", tabUri);
-            oIndexUris.save();
-
+            dbSaveIndex();
 
             LOGGER.debug("Created index of   " + allWords.size());
         }
 
+    }
+
+    private void extractWordsFrom(List<ODocument> publishedContent) {
+        int documentIndexId = 0;
+        for (ODocument document : publishedContent) {
+            tabUri.add((String) document.field("uri"));
+            //Work on tags words
+            String[] tags = DBUtil.toStringArray(document.field("tags"));
+            if (tags != null) {
+                for (String tag : tags) {
+                    addWord(tag, documentIndexId);
+                }
+            }
+            //Work on title words
+            List<String> tokenstitle = tokenizeString((String) document.field("title"));
+            addWords(documentIndexId, tokenstitle);
+
+            //With HTML reader all Lightweight markup language
+            Document docHtml = Jsoup.parseBodyFragment((String) document.field("body"));
+            List<String> tokensbody = tokenizeString(docHtml.body().text());
+            addWords(documentIndexId, tokensbody);
+
+            documentIndexId++;
+
+
+        }
+    }
+
+    private void addWords(int documentIndexId, List<String> tokenstitle) {
+        for (String newWord : tokenstitle) {
+            addWord(newWord, documentIndexId);
+        }
+    }
+
+    private void dbSaveIndex() {
+        ODocument oIndexUris = new ODocument("words");
+        oIndexUris.field("word", "_SEARCH_INDEX_URI_");
+        oIndexUris.field("indexId", tabUri);
+        oIndexUris.save();
+    }
+
+    private void dbSaveWords() {
+        for (String word : allWords.keySet()) {
+            ODocument oWord = new ODocument("words");
+            oWord.field("word", word);
+            oWord.field("indexId", allWords.get(word));
+            oWord.save();
+        }
     }
 
     public static Map<String, Object> wrapWordsValues(Iterator<ODocument> docs) {
@@ -193,7 +205,7 @@ public final class SearchUtil {
             ODocument next = docs.next();
             String word = next.field("word");
             if (!"_SEARCH_INDEX_URI_".equals(word)) {
-                result.put((String) next.field("word"),  next.field("indexId"));
+                result.put((String) next.field("word"), next.field("indexId"));
             }
         }
         return result;
@@ -204,12 +216,12 @@ public final class SearchUtil {
         ODocument indexUri = docs.remove(docs.size() - 1);
         Set<String> setUri = indexUri.field("indexId");
         List<String> listeUri = new ArrayList<String>();
-        for (String uri : setUri){
+        for (String uri : setUri) {
             listeUri.add(uri);
         }
         StringBuilder resultBuilder = new StringBuilder();
         Map<String, Object> indexAndWords = wrapWordsValues(docs.iterator());
-        indexAndWords.put((String)indexUri.field("word"), listeUri );
+        indexAndWords.put((String) indexUri.field("word"), listeUri);
         resultBuilder.append(JSONValue.toJSONString(listeUri)).append(",");
         resultBuilder.append(JSONValue.toJSONString(wrapWordsValues(docs.iterator())));
 
