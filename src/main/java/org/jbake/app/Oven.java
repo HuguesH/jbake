@@ -19,279 +19,275 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.lang.ArrayUtils;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.model.DocumentTypes;
-import org.jbake.parser.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  * All the baking happens in the Oven!
  *
  * @author Jonathan Bullock <jonbullock@gmail.com>
+ *
  */
-public class Oven{
+public class Oven {
 
-  private final static Logger    LOGGER               = LoggerFactory.getLogger(Oven.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(Oven.class);
 
-  private final static Pattern   TEMPLATE_DOC_PATTERN = Pattern.compile("(?:template\\.)([a-zA-Z0-9]+)(?:\\.file)");
+    private final static Pattern TEMPLATE_DOC_PATTERN = Pattern.compile("(?:template\\.)([a-zA-Z0-9]+)(?:\\.file)");
 
     private CompositeConfiguration config;
-    private File                   source;
-    private File                   destination;
-    private File                   templatesPath;
-    private File                   contentsPath;
-    private File                   assetsPath;
-    private boolean                isClearCache;
-    private List<String> errors        = new LinkedList<String>();
-    private int          renderedCount = 0;
+	private File source;
+	private File destination;
+	private File templatesPath;
+	private File contentsPath;
+	private File assetsPath;
+	private boolean isClearCache;
+	private List<String> errors = new LinkedList<String>();
+	private int renderedCount = 0;
 
     /**
-     * Creates a new instance of the Oven with references to the source and destination folders.
-     *
-     * @param source The source folder
-     * @param destination The destination folder
-     * @throws Exception
+     * Delegate c'tor to prevent API break for the moment.
      */
-    public Oven(File source, File destination, boolean isClearCache) throws Exception {
-        this.source = source;
-        this.destination = destination;
-        this.config = ConfigUtil.load(source);
-        this.isClearCache = isClearCache;
+    public Oven(final File source, final File destination, final boolean isClearCache) throws Exception {
+        this(source, destination, ConfigUtil.load(source), isClearCache);
     }
+
+	/**
+	 * Creates a new instance of the Oven with references to the source and destination folders.
+	 *
+	 * @param source		The source folder
+	 * @param destination	The destination folder
+	 */
+	public Oven(final File source, final File destination, final CompositeConfiguration config, final boolean isClearCache) {
+		this.source = source;
+		this.destination = destination;
+		this.config = config;
+		this.isClearCache = isClearCache;
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
+	}
 
     public CompositeConfiguration getConfig() {
         return config;
     }
 
+    // TODO: do we want to use this. Else, config could be final
     public void setConfig(final CompositeConfiguration config) {
         this.config = config;
     }
 
-    private void ensureSource() throws Exception {
-        if(!FileUtil.isExistingFolder(source)){
-            throw new Exception("Error: Source folder must exist!");
+
+
+	private void ensureSource() {
+		if (!FileUtil.isExistingFolder(source)) {
+			throw new JBakeException("Error: Source folder must exist: " + source.getAbsolutePath());
+		}
+		if (!source.canRead()) {
+			throw new JBakeException("Error: Source folder is not readable: " + source.getAbsolutePath());
+		}
+	}
+
+	private void ensureDestination() {
+		if (null == destination) {
+			destination = new File(source, config.getString(Keys.DESTINATION_FOLDER));
+		}
+		if (!destination.exists()) {
+			destination.mkdirs();
+		}
+		if (!destination.canWrite()) {
+			throw new JBakeException("Error: Destination folder is not writable: " + destination.getAbsolutePath());
+		}
+	}
+
+	/**
+	 * Checks source path contains required sub-folders (i.e. templates) and setups up variables for them.
+	 *
+	 * @throws JBakeException If template or contents folder don't exist
+	 */
+	public void setupPaths() {
+		ensureSource();
+        templatesPath = setupRequiredFolderFromConfig(Keys.TEMPLATE_FOLDER);
+        contentsPath = setupRequiredFolderFromConfig(Keys.CONTENT_FOLDER);
+        assetsPath = setupPathFromConfig(Keys.ASSET_FOLDER);
+		if (!assetsPath.exists()) {
+			LOGGER.warn("No asset folder was found!");
+		}
+		ensureDestination();
+	}
+
+        private File setupPathFromConfig(String key) {
+            return new File(source, config.getString(key));
         }
-        if(!source.canRead()){
-            throw new Exception("Error: Source folder is not readable!");
+
+	private File setupRequiredFolderFromConfig(final String key) {
+		final File path = setupPathFromConfig(key);
+		if (!FileUtil.isExistingFolder(path)) {
+			throw new JBakeException("Error: Required folder cannot be found! Expected to find [" + key + "] at: " + path.getAbsolutePath());
+		}
+		return path;
+	}
+
+	/**
+	 * All the good stuff happens in here...
+	 *
+	 * @throws JBakeException
+	 */
+	public void bake() {
+			final ContentStore db = DBUtil.createDataStore(config.getString(Keys.DB_STORE), config.getString(Keys.DB_PATH));
+            updateDocTypesFromConfiguration();
+            DBUtil.updateSchema(db);
+            try {
+                final long start = new Date().getTime();
+                LOGGER.info("Baking has started...");
+                clearCacheIfNeeded(db);
+
+                // process source content
+                Crawler crawler = new Crawler(db, source, config);
+                crawler.crawl(contentsPath);                
+                LOGGER.info("Content detected:");
+                for (String docType : DocumentTypes.getDocumentTypes()) {
+                	int count = crawler.getDocumentCount(docType);
+                	if (count > 0) {
+                		LOGGER.info("Parsed {} files of type: {}", count, docType);
+            		}
+                }
+                
+                Renderer renderer = new Renderer(db, destination, templatesPath, config);
+
+                for (String docType : DocumentTypes.getDocumentTypes()) {
+                        for (ODocument document: db.getUnrenderedContent(docType)) {
+                                try {
+                                        renderer.render(DBUtil.documentToModel(document));
+                                        renderedCount++;
+                                } catch (Exception e) {
+                                        errors.add(e.getMessage());
+                                }
+                        }
+                }
+
+                // write index file
+                if (config.getBoolean(Keys.RENDER_INDEX)) {
+                        try {
+                                renderer.renderIndex(config.getString(Keys.INDEX_FILE));
+                        } catch (Exception e) {
+                                errors.add(e.getMessage());
+                        }
+                }
+
+                // write feed file
+                if (config.getBoolean(Keys.RENDER_FEED)) {
+                        try {
+                                renderer.renderFeed(config.getString(Keys.FEED_FILE));
+                        } catch (Exception e) {
+                                errors.add(e.getMessage());
+                        }
+                }
+
+                // write sitemap file
+                if (config.getBoolean(Keys.RENDER_SITEMAP)) {
+                        try {
+                                renderer.renderSitemap(config.getString(Keys.SITEMAP_FILE));
+                        } catch (Exception e) {
+                                errors.add(e.getMessage());
+                        }
+                }
+
+                // write master archive file
+                if (config.getBoolean(Keys.RENDER_ARCHIVE)) {
+                        try {
+                                renderer.renderArchive(config.getString(Keys.ARCHIVE_FILE));
+                        } catch (Exception e) {
+                                errors.add(e.getMessage());
+                        }
+                }
+
+                // write tag files
+                if (config.getBoolean(Keys.RENDER_TAGS)) {
+                        try {
+                                renderer.renderTags(crawler.getTags(), config.getString(Keys.TAG_PATH));
+                        } catch (Exception e) {
+                                errors.add(e.getMessage());
+                        }
+                }
+
+                // mark docs as rendered
+                for (String docType : DocumentTypes.getDocumentTypes()) {
+                        db.markConentAsRendered(docType);
+                }
+                // copy contents binaries
+                if(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES)[0].length()>0) {
+                    LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
+                            ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
+                    FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
+                }
+                // copy assets
+                LOGGER.info("copy Assets from {} to {} ",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
+                FileUtil.copyDirectory(assetsPath, destination);
+
+                LOGGER.info("Baking finished!");
+                long end = new Date().getTime();
+                LOGGER.info("Baked {} items in {}ms", renderedCount, end - start);
+                if (errors.size() > 0) {
+                        LOGGER.error("Failed to bake {} item(s)!", errors.size());
+                }
+        } finally {
+                db.close();
+                Orient.instance().shutdown();
         }
     }
-
-
-    private void ensureDestination() throws Exception {
-        if(null == destination){
-            destination = new File(source, config.getString(Keys.DESTINATION_FOLDER));
-    }
-    if(!destination.exists()){
-      destination.mkdirs();
-    }
-    if(!destination.canWrite()){
-      throw new Exception("Error: Destination folder is not writable!");
-    }
-  }
-
-  /**
-   * Checks source path contains required sub-folders (i.e. templates) and setups up variables for
-   * them.
-   *
-   * @throws Exception If template or contents folder don't exist
-   */
-  public void setupPaths() throws Exception {
-    ensureSource();
-    templatesPath = setupRequiredFolderFromConfig(Keys.TEMPLATE_FOLDER);
-    contentsPath = setupRequiredFolderFromConfig(Keys.CONTENT_FOLDER);
-    assetsPath = setupPathFromConfig(Keys.ASSET_FOLDER);
-    if(!assetsPath.exists()){
-      LOGGER.warn("No asset folder was found!");
-    }
-    ensureDestination();
-  }
-
-  private File setupPathFromConfig(String key) {
-    return new File(source, config.getString(key));
-  }
-
-  private File setupRequiredFolderFromConfig(String key) throws Exception {
-    File path = setupPathFromConfig(key);
-    if(!FileUtil.isExistingFolder(path)){
-      throw new Exception("Error: Required folder cannot be found! Expected to find [" + key + "] at: "
-          + path.getCanonicalPath());
-    }
-    return path;
-  }
-
-  /**
-   * All the good stuff happens in here...
-   *
-   * @throws Exception
-   */
-  public void bake() throws Exception {
-    ODatabaseDocumentTx db = DBUtil.createDB(config.getString(Keys.DB_STORE), config.getString(Keys.DB_PATH));
-    updateDocTypesFromConfiguration();
-    DBUtil.updateSchema(db);
-    try{
-      long start = new Date().getTime();
-      LOGGER.info("Baking has started...");
-      clearCacheIfNeeded(db);
-
-      // process source content
-      Crawler crawler = new Crawler(db, source, config);
-      crawler.crawl(contentsPath);
-      LOGGER.info("Pages : {}", crawler.getPageCount());
-      LOGGER.info("Posts : {}", crawler.getPostCount());
-
-      //Prepare search with index.
-      SearchUtil searchUtil = new SearchUtil(db,config);
-      searchUtil.tokenizerPublishDocuments();
-
-
-      Renderer renderer = new Renderer(db, destination, templatesPath, config);
-
-      for(String docType : DocumentTypes.getDocumentTypes()){
-        DocumentIterator pagesIt = DBUtil.fetchDocuments(db, "select * from " + docType + " where rendered=false");
-        while(pagesIt.hasNext()){
-          Map<String, Object> page = pagesIt.next();
-          try{
-            renderer.render(page);
-            renderedCount++;
-          }catch(Exception e){
-            errors.add(e.getMessage());
-          }
-        }
-      }
-
-      // write index file
-      if(config.getBoolean(Keys.RENDER_INDEX)){
-        try{
-          renderer.renderIndex(config.getString(Keys.INDEX_FILE));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // write feed file
-      if(config.getBoolean(Keys.RENDER_FEED)){
-        try{
-          renderer.renderFeed(config.getString(Keys.FEED_FILE));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // write sitemap file
-      if(config.getBoolean(Keys.RENDER_SITEMAP)){
-        try{
-          renderer.renderSitemap(config.getString(Keys.SITEMAP_FILE));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // write searchTokens file
-      if(config.getBoolean(Keys.RENDER_SEARCHTOKENS)){
-        try{
-          renderer.renderSearchTokens(config.getString(Keys.SEARCHTOKENS_FILE));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // write master archive file
-      if(config.getBoolean(Keys.RENDER_ARCHIVE)){
-        try{
-          renderer.renderArchive(config.getString(Keys.ARCHIVE_FILE));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // write tag files
-      if(config.getBoolean(Keys.RENDER_TAGS)){
-        try{
-          renderer.renderTags(crawler.getTags(), config.getString(Keys.TAG_PATH));
-        }catch(Exception e){
-          errors.add(e.getMessage());
-        }
-      }
-
-      // mark docs as rendered
-      for(String docType : DocumentTypes.getDocumentTypes()){
-        DBUtil.update(db, "update " + docType + " set rendered=true where rendered=false and cached=true");
-      }
-      // copy contents binaries
-      if(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES)[0].length()>0) {
-        LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
-                ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
-        FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
-      }
-      // copy assets
-      LOGGER.info("copy Assets from {} to {} ",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
-      FileUtil.copyDirectory(assetsPath, destination);
-
-      LOGGER.info("Baking finished!");
-      long end = new Date().getTime();
-      LOGGER.info("Baked {} items in {}ms", renderedCount, end - start);
-      if(errors.size() > 0){
-        LOGGER.error("Failed to bake {} item(s)!", errors.size());
-      }
-
-    }finally{
-      db.close();
-      Orient.instance().shutdown();
-    }
-  }
-
 
 
     /**
-   * Iterates over the configuration, searching for keys like "template.index.file=..." in order to
-   * register new document types.
-   */
-  private void updateDocTypesFromConfiguration() {
-    Iterator<String> keyIterator = config.getKeys();
-    while(keyIterator.hasNext()){
-      String key = keyIterator.next();
-      Matcher matcher = TEMPLATE_DOC_PATTERN.matcher(key);
-      if(matcher.find()){
-        DocumentTypes.addDocumentType(matcher.group(1));
-      }
-    }
-  }
-
-  private void clearCacheIfNeeded(final ODatabaseDocumentTx db) {
-    boolean needed = isClearCache;
-    if(!needed){
-      List<ODocument> docs = DBUtil.query(db, "select sha1 from Signatures where key='templates'");
-      String currentTemplatesSignature;
-      try{
-        currentTemplatesSignature = FileUtil.sha1(templatesPath);
-      }catch(Exception e){
-        currentTemplatesSignature = "";
-      }
-      if(!docs.isEmpty()){
-        String sha1 = docs.get(0).field("sha1");
-        needed = !sha1.equals(currentTemplatesSignature);
-        if(needed){
-          DBUtil.update(db, "update Signatures set sha1=? where key='templates'", currentTemplatesSignature);
+     * Iterates over the configuration, searching for keys like "template.index.file=..."
+     * in order to register new document types.
+     */
+    private void updateDocTypesFromConfiguration() {
+        Iterator<String> keyIterator = config.getKeys();
+        while (keyIterator.hasNext()) {
+            String key = keyIterator.next();
+            Matcher matcher = TEMPLATE_DOC_PATTERN.matcher(key);
+            if (matcher.find()) {
+                DocumentTypes.addDocumentType(matcher.group(1));
+            }
         }
-      }else{
-        // first computation of templates signature
-        DBUtil.update(db, "insert into Signatures(key,sha1) values('templates',?)", currentTemplatesSignature);
-        needed = true;
-      }
     }
-    if(needed){
-      for(String docType : DocumentTypes.getDocumentTypes()){
-        try{
-          DBUtil.update(db, "delete from " + docType);
-        }catch(Exception e){
-          // maybe a non existing document type
+
+    private void clearCacheIfNeeded(final ContentStore db) {
+        boolean needed = isClearCache;
+        if (!needed) {
+            List<ODocument> docs = db.getSignaturesForTemplates();
+            String currentTemplatesSignature;
+            try {
+                currentTemplatesSignature = FileUtil.sha1(templatesPath);
+            } catch (Exception e) {
+                currentTemplatesSignature = "";
+            }
+            if (!docs.isEmpty()) {
+                String sha1 = docs.get(0).field("sha1");
+                needed = !sha1.equals(currentTemplatesSignature);
+                if (needed) {
+                    db.updateSignatures(currentTemplatesSignature);
+                }
+            } else {
+                // first computation of templates signature
+                db.insertSignature(currentTemplatesSignature);
+                needed = true;
+            }
         }
-      }
-      DBUtil.updateSchema(db);
+        if (needed) {
+            for (String docType : DocumentTypes.getDocumentTypes()) {
+                try {
+                    db.deleteAllByDocType(docType);
+                } catch (Exception e) {
+                    // maybe a non existing document type
+                }
+            }
+            DBUtil.updateSchema(db);
+        }
     }
-  }
 
-  public List<String> getErrors() {
-    return new ArrayList<String>(errors);
-  }
-
+	public List<String> getErrors() {
+		return new ArrayList<String>(errors);
+	}
+    
 }
