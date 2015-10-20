@@ -139,7 +139,7 @@ public class FreemarkerTemplateEngine extends AbstractTemplateEngine {
                 return new SimpleDate(new Date(), TemplateDateModel.UNKNOWN);
             }
             if("all_words".equals(key)){
-                List<ODocument> query = DBUtil.query(db, "select * from words");
+                List<ODocument> query = db.getAllWords();
                 eagerModel.put("all_words",SearchUtil.searchTokensToJSon(query));
             }
 

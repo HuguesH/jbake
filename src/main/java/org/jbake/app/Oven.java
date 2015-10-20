@@ -1,17 +1,16 @@
 package org.jbake.app;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.orientechnologies.orient.core.Orient;
-import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 import org.apache.commons.configuration.CompositeConfiguration;
@@ -19,6 +18,7 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.lang.ArrayUtils;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.model.DocumentTypes;
+import org.jbake.parser.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -143,94 +143,109 @@ public class Oven {
 
                 // process source content
                 Crawler crawler = new Crawler(db, source, config);
-                crawler.crawl(contentsPath);                
+                crawler.crawl(contentsPath);
                 LOGGER.info("Content detected:");
                 for (String docType : DocumentTypes.getDocumentTypes()) {
-                	int count = crawler.getDocumentCount(docType);
-                	if (count > 0) {
-                		LOGGER.info("Parsed {} files of type: {}", count, docType);
-            		}
+                    int count = crawler.getDocumentCount(docType);
+                    if (count > 0) {
+                        LOGGER.info("Parsed {} files of type: {}", count, docType);
+                    }
                 }
-                
+
+                //Prepare search with index.
+                SearchUtil searchUtil = new SearchUtil(db,config);
+                searchUtil.tokenizerPublishDocuments();
+
                 Renderer renderer = new Renderer(db, destination, templatesPath, config);
 
                 for (String docType : DocumentTypes.getDocumentTypes()) {
-                        for (ODocument document: db.getUnrenderedContent(docType)) {
-                                try {
-                                        renderer.render(DBUtil.documentToModel(document));
-                                        renderedCount++;
-                                } catch (Exception e) {
-                                        errors.add(e.getMessage());
-                                }
+                    for (ODocument document : db.getUnrenderedContent(docType)) {
+                        try {
+                            renderer.render(DBUtil.documentToModel(document));
+                            renderedCount++;
+                        } catch (Exception e) {
+                            errors.add(e.getMessage());
                         }
+                    }
+                }
+
+                // write searchTokens file
+                if(config.getBoolean(Keys.RENDER_SEARCHTOKENS)){
+                    try{
+                        renderer.renderSearchTokens(config.getString(Keys.SEARCHTOKENS_FILE));
+                    }catch(Exception e){
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // write index file
                 if (config.getBoolean(Keys.RENDER_INDEX)) {
-                        try {
-                                renderer.renderIndex(config.getString(Keys.INDEX_FILE));
-                        } catch (Exception e) {
-                                errors.add(e.getMessage());
-                        }
+                    try {
+                        renderer.renderIndex(config.getString(Keys.INDEX_FILE));
+                    } catch (Exception e) {
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // write feed file
                 if (config.getBoolean(Keys.RENDER_FEED)) {
-                        try {
-                                renderer.renderFeed(config.getString(Keys.FEED_FILE));
-                        } catch (Exception e) {
-                                errors.add(e.getMessage());
-                        }
+                    try {
+                        renderer.renderFeed(config.getString(Keys.FEED_FILE));
+                    } catch (Exception e) {
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // write sitemap file
                 if (config.getBoolean(Keys.RENDER_SITEMAP)) {
-                        try {
-                                renderer.renderSitemap(config.getString(Keys.SITEMAP_FILE));
-                        } catch (Exception e) {
-                                errors.add(e.getMessage());
-                        }
+                    try {
+                        renderer.renderSitemap(config.getString(Keys.SITEMAP_FILE));
+                    } catch (Exception e) {
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // write master archive file
                 if (config.getBoolean(Keys.RENDER_ARCHIVE)) {
-                        try {
-                                renderer.renderArchive(config.getString(Keys.ARCHIVE_FILE));
-                        } catch (Exception e) {
-                                errors.add(e.getMessage());
-                        }
+                    try {
+                        renderer.renderArchive(config.getString(Keys.ARCHIVE_FILE));
+                    } catch (Exception e) {
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // write tag files
                 if (config.getBoolean(Keys.RENDER_TAGS)) {
-                        try {
-                                renderer.renderTags(crawler.getTags(), config.getString(Keys.TAG_PATH));
-                        } catch (Exception e) {
-                                errors.add(e.getMessage());
-                        }
+                    try {
+                        renderer.renderTags(crawler.getTags(), config.getString(Keys.TAG_PATH));
+                    } catch (Exception e) {
+                        errors.add(e.getMessage());
+                    }
                 }
 
                 // mark docs as rendered
                 for (String docType : DocumentTypes.getDocumentTypes()) {
-                        db.markConentAsRendered(docType);
+                    db.markConentAsRendered(docType);
                 }
                 // copy contents binaries
-                if(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES)[0].length()>0) {
+                if (config.getStringArray(Keys.CONTENT_BIN_SUFFIXES)[0].length() > 0) {
                     LOGGER.info("copy Content {} to {} | for suffixes {}", new String[]{contentsPath.getAbsolutePath(), destination.getAbsolutePath(),
                             ArrayUtils.toString(config.getStringArray(Keys.CONTENT_BIN_SUFFIXES))});
                     FileUtil.copyDirectory(contentsPath, destination, config.getStringArray(Keys.CONTENT_BIN_SUFFIXES));
                 }
                 // copy assets
-                LOGGER.info("copy Assets from {} to {} ",new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
+                LOGGER.info("copy Assets from {} to {} ", new String[]{assetsPath.getAbsolutePath(), destination.getAbsolutePath()});
                 FileUtil.copyDirectory(assetsPath, destination);
 
                 LOGGER.info("Baking finished!");
                 long end = new Date().getTime();
                 LOGGER.info("Baked {} items in {}ms", renderedCount, end - start);
                 if (errors.size() > 0) {
-                        LOGGER.error("Failed to bake {} item(s)!", errors.size());
+                    LOGGER.error("Failed to bake {} item(s)!", errors.size());
                 }
-        } finally {
+            }catch(IOException ioExcp){
+                LOGGER.error("Failed to copy Assets ", ioExcp);
+            } finally {
                 db.close();
                 Orient.instance().shutdown();
         }

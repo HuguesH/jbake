@@ -137,14 +137,14 @@ public class GroovyTemplateEngine extends AbstractTemplateEngine {
                     if ("tag_pages".equals(key)) {
                         String tag = model.get("tag").toString();
                         // fetch the tag posts from db
-                        List<ODocument> query = DBUtil.query(db, "select * from page where status='published' where ? in tags order by date desc", tag);
+                        List<ODocument> query = db.getPublishedPagesByTag(tag);
                         return DocumentList.wrap(query.iterator());
                     }
                     if ("published_date".equals(key)) {
                         return new Date();
                     }
                     if("all_words".equals(key)){
-                        List<ODocument> query = DBUtil.query(db, "select * from words");
+                        List<ODocument> query = db.getAllWords();
                         return SearchUtil.searchTokensToJSon(query);
                     }
                 }

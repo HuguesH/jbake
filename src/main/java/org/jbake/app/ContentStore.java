@@ -72,6 +72,10 @@ public class ContentStore {
         }
     }
 
+    public OSchema getSchema(){
+        return db.getMetadata().getSchema();
+    }
+
     public void close() {
         db.close();
     }
@@ -97,6 +101,10 @@ public class ContentStore {
         return query("select * from post where status='published' where ? in tags order by date desc", tag);
     }
 
+    public List<ODocument> getPublishedPagesByTag(String tag) {
+        return query("select * from page where status='published' where ? in tags order by date desc", tag);
+    }
+
     public List<ODocument> getPublishedPages() {
         return getPublishedContent("page");
     }
@@ -111,6 +119,10 @@ public class ContentStore {
 
     public List<ODocument> getAllTagsFromPublishedPosts() {
         return query("select tags from post where status='published'");
+    }
+
+    public List<ODocument> getAllTagsFromPublishedPosts(String docType) {
+        return query("select tags from "+ docType + " where status='published'");
     }
 
     public List<ODocument> getSignaturesForTemplates() {
@@ -141,11 +153,11 @@ public class ContentStore {
         executeCommand("insert into Signatures(key,sha1) values('templates',?)", currentTemplatesSignature);
     }
 
-    private List<ODocument> query(String sql) {
+    public List<ODocument> query(String sql) {
         return db.query(new OSQLSynchQuery<ODocument>(sql));
     }
     
-    private List<ODocument> query(String sql, Object... args) {
+    public List<ODocument> query(String sql, Object... args) {
         return db.command(new OSQLSynchQuery<ODocument>(sql)).execute(args);
     }
 
@@ -164,5 +176,9 @@ public class ContentStore {
         // after the database is closed to this triggers an exception
         //page.createIndex("uriIdx", OClass.INDEX_TYPE.UNIQUE, "uri");
         //page.createIndex("renderedIdx", OClass.INDEX_TYPE.NOTUNIQUE, "rendered");
+    }
+
+    public  List<ODocument> getAllWords(){
+        return db.query(new OSQLSynchQuery<ODocument>("select * from words"));
     }
 }

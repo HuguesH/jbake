@@ -14,6 +14,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.jbake.app.ConfigUtil;
+import org.jbake.app.ContentStore;
 import org.jbake.app.DBUtil;
 import org.jbake.model.DocumentTypes;
 import org.json.simple.JSONValue;
@@ -44,13 +45,13 @@ public final class SearchUtil {
 
     private Analyzer analyzer;
 
-    private ODatabaseDocumentTx db;
+    private ContentStore db;
 
     private Map<String, LinkedHashSet<Integer>> allWords = new HashMap<String, LinkedHashSet<Integer>>();
 
     private LinkedHashSet<String> tabUri = new LinkedHashSet<String>();
 
-    public SearchUtil(ODatabaseDocumentTx db, CompositeConfiguration config) {
+    public SearchUtil(ContentStore db, CompositeConfiguration config) {
         // Contrôle de lexistence de lucene dans le classpath.
         Class luceneClass = Analyzer.class;
         if (luceneClass != null) {
@@ -76,8 +77,8 @@ public final class SearchUtil {
 
     }
 
-    public static void updateSchema(final ODatabaseDocumentTx db) {
-        OSchema schema = db.getMetadata().getSchema();
+    public static void updateSchema(final ContentStore db) {
+        OSchema schema = db.getSchema();
         if (schema.getClass("words") == null) {
             // create the sha1 signatures class
             OClass dico = schema.createClass("word");
@@ -135,8 +136,7 @@ public final class SearchUtil {
             List<ODocument> publishedContent = new ArrayList<ODocument>();
             String[] documentTypes = DocumentTypes.getDocumentTypes();
             for (String docType : documentTypes) {
-                List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from " + docType
-                        + " where status='published' order by date desc"));
+                List<ODocument> query = db.query("select * from " + docType + " where status='published' order by date desc");
                 publishedContent.addAll(query);
             }
 

@@ -164,7 +164,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         }
 
         private Object getAllWords() {
-            List<ODocument> query = DBUtil.query(db, "select * from words");
+            List<ODocument> query = db.getAllWords();
             return  SearchUtil.searchTokensToJSon(query);
         }
     }
