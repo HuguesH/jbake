@@ -17,14 +17,13 @@ import freemarker.template.TemplateHashModel;
 import freemarker.template.TemplateModel;
 import freemarker.template.TemplateModelException;
 
-import javafx.beans.property.SimpleStringProperty;
+
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.jbake.app.ConfigUtil.Keys;
 import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
 import org.jbake.parser.SearchUtil;
-import org.json.simple.JSONValue;
 
 import java.io.File;
 import java.io.IOException;
