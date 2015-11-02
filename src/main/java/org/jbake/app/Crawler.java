@@ -1,6 +1,5 @@
 package org.jbake.app;
 
-import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
@@ -31,13 +30,13 @@ public class Crawler {
 
     private CompositeConfiguration config;
     private Parser parser;
-    private final ODatabaseDocumentTx db;
+    private final ContentStore db;
     private String contentPath;
 
     /**
      * Creates new instance of Crawler.
      */
-    public Crawler(ODatabaseDocumentTx db, File source, CompositeConfiguration config) {
+    public Crawler(ContentStore db, File source, CompositeConfiguration config) {
         this.db = db;
         this.config = config;
         this.contentPath = source.getPath() + separator + config.getString(ConfigUtil.Keys.CONTENT_FOLDER);
@@ -66,7 +65,7 @@ public class Crawler {
                         switch (status) {
                             case UPDATED:
                                 sb.append(" : modified ");
-                                DBUtil.update(db, "delete from " + docType + " where sourceuri=?", uri);
+                                db.deleteContent(docType, uri);
                                 break;
                             case IDENTICAL:
                                 sb.append(" : same ");
@@ -103,7 +102,7 @@ public class Crawler {
     }
     
     private String buildURI(final File sourceFile) {
-    	String uri = FileUtil.asPath(sourceFile.getPath()).replace(FileUtil.asPath(contentPath), "");
+    	String uri = FileUtil.asPath(sourceFile.getPath()).replace(FileUtil.asPath( contentPath), "");
     	// strip off leading / to enable generating non-root based sites
     	if (uri.startsWith("/")) {
     		uri = uri.substring(1, uri.length());
@@ -162,18 +161,11 @@ public class Crawler {
         return (int) db.countClass(docType);
     }
 
-    public int getPostCount() {
-        return getDocumentCount("post");
-    }
-
-    public int getPageCount() {
-        return getDocumentCount("page");
-    }
 
     public Set<String> getTags() {
         Set<String> result = new HashSet<String>();
         for (String docType : DocumentTypes.getDocumentTypes()) {
-            List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from " + docType + " where status='published'"));
+            List<ODocument> query = db.getAllTagsFromPublishedPosts(docType);
             for (ODocument document : query) {
                 String[] tags = DBUtil.toStringArray(document.field("tags"));
                 Collections.addAll(result, tags);
@@ -183,7 +175,7 @@ public class Crawler {
     }
 
     private DocumentStatus findDocumentStatus(String docType, String uri, String sha1) {
-        List<ODocument> match = DBUtil.query(db, "select sha1,rendered from " + docType + " where sourceuri=?", uri);
+        List<ODocument> match = db.getDocumentStatus(docType, uri);
         if (!match.isEmpty()) {
             ODocument entries = match.get(0);
             String oldHash = entries.field("sha1");

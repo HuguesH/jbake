@@ -4,7 +4,7 @@
 
 	<groupId>hh.jbake</groupId>
 	<artifactId>jbake-core</artifactId>
-	<version>2.3.3-SNAPSHOT</version>
+	<version>2.5.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>jbake</name>
@@ -58,6 +58,7 @@
         <logback.version>1.1.1</logback.version>
         <assertj.version>1.7.0</assertj.version>
         <thymeleaf.version>2.1.3.RELEASE</thymeleaf.version>
+		<thymeleaf.extras.version>2.1.1.RELEASE</thymeleaf.extras.version>
         <json-simple.version>1.1.1</json-simple.version>
 		<lucene.version>5.3.0</lucene.version>
 		<jsoup.version>1.8.3</jsoup.version>
@@ -164,8 +165,6 @@
 		</resources>
 	</build>
 	<dependencies>
-		<!-- Test indexations -->
-
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
@@ -272,6 +271,12 @@
 			<version>${jsoup.version}</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-conditionalcomments</artifactId>
+			<version>${thymeleaf.extras.version}</version>
+			<optional>true</optional>
+		</dependency>
 		<!-- sl4j Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -279,7 +284,13 @@
 			<version>${slf4j.version}</version>
 		</dependency>
 
-        <dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jul-to-slf4j</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
+
+		<dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>

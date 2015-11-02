@@ -76,7 +76,7 @@ public class Parser {
 
         MarkupEngine engine = Engines.get(FileUtil.fileExt(file));
         if (engine==null) {
-            LOGGER.error("Unable to find suitable markup engine for {}",file);
+            LOGGER.warn("Unable to find suitable markup engine for {}",file);
             return null;
         }
 
@@ -97,7 +97,7 @@ public class Parser {
 
         if (content.get("type")==null||content.get("status")==null) {
             // output error
-            LOGGER.error("Error parsing meta data from header!");
+            LOGGER.warn("Error parsing meta data from header (missing type or status value) for file {}!", file);
             return null;
         }
 
@@ -108,10 +108,23 @@ public class Parser {
         if (engine.validate(context)) {
             engine.processBody(context);
         } else {
-            LOGGER.error("Incomplete source file ({}) for markup engine:", file, engine.getClass().getSimpleName());
+            LOGGER.warn("Incomplete source file ({}) for markup engine:", file, engine.getClass().getSimpleName());
             return null;
         }
 
+        if (content.get("tags") != null) {
+        	String[] tags = (String[]) content.get("tags");
+            for( int i=0; i<tags.length; i++ ) {
+                tags[i]=tags[i].trim();
+                if (config.getBoolean(Keys.TAG_SANITIZE)) {
+                	tags[i]=tags[i].replace(" ", "-");
+                }
+            }
+            content.put("tags", tags);
+        }
+        
+        // TODO: post parsing plugins to hook in here?
+        
         return content;
     }
 
@@ -180,7 +193,7 @@ public class Parser {
             if (line.equals(HEADER_SEP)) {
                 break;
             } else {
-                String[] parts = line.split("=");
+                String[] parts = line.split("=",2);
                 if (parts.length == 2) {
                     if (parts[0].equalsIgnoreCase("date")) {
                         DateFormat df = new SimpleDateFormat(config.getString(Keys.DATE_FORMAT));
@@ -193,8 +206,6 @@ public class Parser {
                         }
                     } else if (parts[0].equalsIgnoreCase("tags")) {
                         String[] tags = parts[1].split(",");
-                        for( int i=0; i<tags.length; i++ )
-                            tags[i]=tags[i].trim();
                         content.put(parts[0], tags);
                     } else if (parts[1].startsWith("{") && parts[1].endsWith("}")) {
                         // Json type

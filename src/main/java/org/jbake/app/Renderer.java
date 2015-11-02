@@ -40,7 +40,7 @@ public class Renderer {
      * @param destination   The destination folder
      * @param templatesPath The templates folder
      */
-    public Renderer(ODatabaseDocumentTx db, File destination, File templatesPath, CompositeConfiguration config) {
+    public Renderer(ContentStore db, File destination, File templatesPath, CompositeConfiguration config) {
         this.destination = destination;
         this.config = config;
         this.renderingEngine = new DelegatingTemplateEngine(config, db, destination, templatesPath);
@@ -117,11 +117,11 @@ public class Renderer {
         sb.append("Rendering index [").append(outputFile).append("]...");
         Map<String, Object> model = new HashMap<String, Object>();
         model.put("renderer", renderingEngine);
-        model.put("content", buildSimpleModel("index"));
+        model.put("content", buildSimpleModel("masterindex"));
 
         try {
             Writer out = createWriter(outputFile);
-            renderingEngine.renderDocument(model, findTemplateName("index"), out);
+            renderingEngine.renderDocument(model, findTemplateName("masterindex"), out);
             out.close();
             sb.append("done!");
             LOGGER.info(sb.toString());
@@ -261,7 +261,6 @@ public class Renderer {
             map.put("rootpath", "../");
             model.put("content", map);
 
-            tag = tag.trim().replace(" ", "-");
             File outputFile = new File(destination.getPath() + File.separator + tagPath + File.separator + tag + config.getString(Keys.OUTPUT_EXTENSION));
             StringBuilder sb = new StringBuilder();
             sb.append("Rendering tags [").append(outputFile).append("]... ");

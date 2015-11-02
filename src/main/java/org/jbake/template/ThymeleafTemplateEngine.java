@@ -1,6 +1,5 @@
 package org.jbake.template;
 
-import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
@@ -11,10 +10,10 @@ import org.jbake.app.DBUtil;
 import org.jbake.app.DocumentList;
 import org.jbake.model.DocumentTypes;
 import org.jbake.parser.SearchUtil;
-import org.json.simple.JSONValue;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.context.VariablesMap;
+import org.thymeleaf.dialect.IDialect;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 
 import java.io.File;
@@ -28,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import org.jbake.app.ContentStore;
 
 /**
  * <p>A template engine which renders pages using Thymeleaf.</p>
@@ -50,7 +50,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
     private TemplateEngine templateEngine;
     private FileTemplateResolver templateResolver;
 
-    public ThymeleafTemplateEngine(final CompositeConfiguration config, final ODatabaseDocumentTx db, final File destination, final File templatesPath) {
+    public ThymeleafTemplateEngine(final CompositeConfiguration config, final ContentStore db, final File destination, final File templatesPath) {
         super(config, db, destination, templatesPath);
         initializeTemplateEngine();
     }
@@ -61,6 +61,12 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         templateResolver.setCharacterEncoding(config.getString(Keys.TEMPLATE_ENCODING));
         templateEngine = new TemplateEngine();
         templateEngine.setTemplateResolver(templateResolver);
+        try {
+            IDialect condCommentDialect = (IDialect) Class.forName("org.thymeleaf.extras.conditionalcomments.dialect.ConditionalCommentsDialect").newInstance();
+            templateEngine.addDialect(condCommentDialect);
+        } catch (Exception e) {
+            // Sad, but true and not a real problem
+        }
     }
 
     @Override
@@ -108,8 +114,8 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
             put("published_date", new Date());
             String[] documentTypes = DocumentTypes.getDocumentTypes();
             for (String docType : documentTypes) {
-                put(docType + "s", DocumentList.wrap(DBUtil.query(db, "select * from " + docType + " order by date desc").iterator()));
-                put("published_" + docType + "s", DocumentList.wrap(DBUtil.query(db, "select * from " + docType + " where status='published' order by date desc").iterator()));
+                put(docType + "s", DocumentList.wrap(db.getAllContent(docType).iterator()));
+                put("published_" + docType + "s", DocumentList.wrap(db.getPublishedContent(docType).iterator()));
             }
             put("published_content", getPublishedContent());
             put("all_content", getAllContent());
@@ -120,7 +126,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
             if (tagName != null) {
                 String tag = tagName.toString();
                 // fetch the tag posts from db
-                List<ODocument> query = DBUtil.query(db, "select * from post where status='published' where ? in tags order by date desc", tag);
+                List<ODocument> query = db.getPublishedPostsByTag(tag);
                 return DocumentList.wrap(query.iterator());
             } else {
                 return Collections.emptyList();
@@ -128,7 +134,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         }
 
         private Object getAllTags() {
-            List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select tags from post where status='published'"));
+            List<ODocument> query = db.getAllTagsFromPublishedPosts();
             Set<String> result = new HashSet<String>();
             for (ODocument document : query) {
                 String[] tags = DBUtil.toStringArray(document.field("tags"));
@@ -141,7 +147,7 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         	List<ODocument> publishedContent = new ArrayList<ODocument>();
         	String[] documentTypes = DocumentTypes.getDocumentTypes();
         	for (String docType : documentTypes) {
-        		List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from " + docType + " where status='published' order by date desc"));
+        		List<ODocument> query = db.getPublishedContent(docType);
         		publishedContent.addAll(query);
         	}
         	return DocumentList.wrap(publishedContent.iterator());
@@ -151,14 +157,14 @@ public class ThymeleafTemplateEngine extends AbstractTemplateEngine {
         	List<ODocument> allContent = new ArrayList<ODocument>();
         	String[] documentTypes = DocumentTypes.getDocumentTypes();
         	for (String docType : documentTypes) {
-        		List<ODocument> query = db.query(new OSQLSynchQuery<ODocument>("select * from "+docType+" order by date desc"));
+        		List<ODocument> query = db.getAllContent(docType);
         		allContent.addAll(query);
         	}
         	return DocumentList.wrap(allContent.iterator());
         }
 
         private Object getAllWords() {
-            List<ODocument> query = DBUtil.query(db, "select * from words");
+            List<ODocument> query = db.getAllWords();
             return  SearchUtil.searchTokensToJSon(query);
         }
     }
