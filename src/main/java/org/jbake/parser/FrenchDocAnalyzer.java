@@ -9,6 +9,8 @@ import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.fr.FrenchLightStemFilter;
+import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilter;
 import org.apache.lucene.analysis.snowball.SnowballFilter;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
@@ -57,9 +59,14 @@ public class FrenchDocAnalyzer extends StopwordAnalyzerBase{
     StandardFilter result = new StandardFilter((TokenStream) source);
     ElisionFilter result2 = new ElisionFilter(result, DEFAULT_ARTICLES);
     LowerCaseFilter result3 = new LowerCaseFilter(result2);
-    StopFilter result4 = new StopFilter(result3, this.stopwords);
+    TokenStream result4 = new StopFilter(result3, this.stopwords);
 
-    return new TokenStreamComponents((Tokenizer) source, result4);
+    if(!this.excltable.isEmpty()) {
+      result4 = new SetKeywordMarkerFilter(result4, this.excltable);
+    }
+    FrenchLightStemFilter result1 = new FrenchLightStemFilter(result4);
+
+    return new TokenStreamComponents((Tokenizer) source, result1);
   }
 
   private static class DefaultSetHolder{
