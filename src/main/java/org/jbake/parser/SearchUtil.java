@@ -49,7 +49,9 @@ public final class SearchUtil {
 
     private Map<String, LinkedHashSet<Integer>> allWords = new HashMap<String, LinkedHashSet<Integer>>();
 
-    private LinkedHashSet<String> tabUri = new LinkedHashSet<String>();
+    private static List<String> tabUri = new ArrayList<String>();
+
+    private static final String INDEX_URI = "_SEARCH_INDEX_URI_";
 
     public SearchUtil(ContentStore db, CompositeConfiguration config) {
         // Contrôle de lexistence de lucene dans le classpath.
@@ -144,8 +146,6 @@ public final class SearchUtil {
 
             dbSaveWords();
 
-            dbSaveIndex();
-
             LOGGER.debug("Created index of   " + allWords.size());
         }
 
@@ -154,7 +154,10 @@ public final class SearchUtil {
     private void extractWordsFrom(List<ODocument> publishedContent) {
         int documentIndexId = 0;
         for (ODocument document : publishedContent) {
-            tabUri.add((String) document.field("uri"));
+            String docURI =  document.field("uri");
+
+            LOGGER.debug("Work on {} for indexId : {}", docURI, documentIndexId);
+            tabUri.add(docURI);
             //Work on tags words
             String[] tags = DBUtil.toStringArray(document.field("tags"));
             if (tags != null) {
@@ -183,13 +186,6 @@ public final class SearchUtil {
         }
     }
 
-    private void dbSaveIndex() {
-        ODocument oIndexUris = new ODocument("words");
-        oIndexUris.field("word", "_SEARCH_INDEX_URI_");
-        oIndexUris.field("indexId", tabUri);
-        oIndexUris.save();
-    }
-
     private void dbSaveWords() {
         for (String word : allWords.keySet()) {
             ODocument oWord = new ODocument("words");
@@ -203,28 +199,16 @@ public final class SearchUtil {
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         while (docs.hasNext()) {
             ODocument next = docs.next();
-            String word = next.field("word");
-            if (!"_SEARCH_INDEX_URI_".equals(word)) {
-                result.put((String) next.field("word"), next.field("indexId"));
-            }
+            result.put((String) next.field("word"), next.field("indexId"));
         }
+
+        result.put(INDEX_URI, tabUri);
         return result;
     }
 
 
     public static String searchTokensToJSon(List<ODocument> docs) {
-        ODocument indexUri = docs.remove(docs.size() - 1);
-        Set<String> setUri = indexUri.field("indexId");
-        List<String> listeUri = new ArrayList<String>();
-        for (String uri : setUri) {
-            listeUri.add(uri);
-        }
-        StringBuilder resultBuilder = new StringBuilder();
         Map<String, Object> indexAndWords = wrapWordsValues(docs.iterator());
-        indexAndWords.put((String) indexUri.field("word"), listeUri);
-        resultBuilder.append(JSONValue.toJSONString(listeUri)).append(",");
-        resultBuilder.append(JSONValue.toJSONString(wrapWordsValues(docs.iterator())));
-
         return JSONValue.toJSONString(indexAndWords);
 
     }
