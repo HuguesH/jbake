@@ -64,9 +64,9 @@ public class FrenchDocAnalyzer extends StopwordAnalyzerBase{
     if(!this.excltable.isEmpty()) {
       result4 = new SetKeywordMarkerFilter(result4, this.excltable);
     }
-    FrenchLightStemFilter result1 = new FrenchLightStemFilter(result4);
+    //FrenchLightStemFilter result1 = new FrenchLightStemFilter(result4);
 
-    return new TokenStreamComponents((Tokenizer) source, result1);
+    return new TokenStreamComponents((Tokenizer) source, result4);
   }
 
   private static class DefaultSetHolder{
